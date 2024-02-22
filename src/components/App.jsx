@@ -1,177 +1,163 @@
-// import { Basics } from "./Basics";
-
-import { Component } from "react"
-import { QuizForm } from "./QuizForm/QuizForm"
-import { SearchBar } from "./SearchBar"
-import { QuizList } from "./QuizList/QuizList"
-// import { nanoid } from "nanoid"
-import { addNewQuiz, deleteQuizById, fetchQuizzes } from "api"
-import { Bars } from 'react-loader-spinner'
+import { QuizForm } from './QuizForm/QuizForm';
+import { SearchBar } from './SearchBar';
+import { QuizList } from './QuizList/QuizList';
+import { addNewQuiz, deleteQuizById, fetchQuizzes } from 'api';
+import { Bars } from 'react-loader-spinner';
 import toast, { Toaster } from 'react-hot-toast';
+import { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 
 const initialFilters = {
-  topic: "",
-   level: "all",
-}
+  topic: '',
+  level: 'all',
+};
 
-const storageKey = "quiz-filters"
+const storageKey = 'quiz-filters';
 
-export class App extends Component {
-  state = {
-    quizItems: [],
-    isLoading: false,
-    error: false,
-    filters: initialFilters
-  };
+const getInitialFilters = () => {
+  const savedFilters = window.localStorage.getItem(storageKey);
+  if (savedFilters !== null) {
+    return JSON.parse(savedFilters);
+  }
+  return initialFilters;
+};
 
-  async componentDidMount() {
-    // console.log("component did mount");
-    const savedFilters = window.localStorage.getItem(storageKey);
-    // console.log(savedFilters);
-    if (savedFilters !== null) {
-      this.setState({
-      filters: JSON.parse(savedFilters),
-    }) 
+export const App = () => {
+  const [quizItems, setQuizItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [filters, setFilters] = useState(getInitialFilters);
+
+  useEffect(() => {
+    // const abortController = new AbortController();
+
+    async function getQuizzes() {
+      try {
+        setIsLoading(true);
+        setError(false);
+        const initialQuizes = await fetchQuizzes();
+        setQuizItems(initialQuizes);
+        // signal: abortController.signal;
+        // return () => {
+        //   abortController.abort();
+        // };
+      } catch (err) {
+        if (err.code !== 'ERR_CANCELED') {
+          setError(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    getQuizzes();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(filters));
+  }, [filters]);
+  // --------------------------------------
+  // cancel http request
+  const controllerRef = useRef();
+
+  const fetcData = async () => {
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
+
+    controllerRef.current = new AbortController();
 
     try {
-      this.setState({ isLoading: true, error: false });
-      const initialQuizes = await fetchQuizzes()
-      console.log(initialQuizes);
-      this.setState({
-        quizItems: initialQuizes
-      })
-    } catch (err) {
-      this.setState({ error: true });
-    } finally {
-      this.setState({isLoading: false})
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    console.log("component did update");
-    if (prevState.filters !== this.state.filters) {
-      // console.log("prevstate", prevState);
-      // console.log("this.state", this.state);
-      localStorage.setItem(storageKey, JSON.stringify(this.state.filters))
-    }
-  }
-
-  updateTopicFilter = newTopic => { 
-    console.log(newTopic);
-    this.setState(prevState => {
-      return {
-        filters: {
-          ...prevState.filters,
-          topic: newTopic,
-        }
-      }
-    })
-  };
-
-  updateLevelFilter = newLevel => {
-    this.setState(prevState => {
-      return {
-        filters: {
-          ...prevState.filters,
-          level: newLevel,
-        }
-      }
-    })
-  }
-
-   resetFilters = () => {
-    this.setState(prevState => {
-      return {
-        filters: initialFilters
-      }
-    })
-  }
-
-  deleteQuiz = async (quizId) => {
-    // console.log("Deleted", quizId);
-    // this.setState(prevState => {
-    //   return {
-    //     quizItems: prevState.quizItems.filter(item=> item.id !== quizId)
-    //   }
-    // })
-
-    try {
-      this.setState({ isLoading: true, error: false });
-      const deletedQuiz = await deleteQuizById(quizId);
-      this.setState(prevState => {
-        return {
-          quizItems: prevState.quizItems.filter(
-            item => item.id !== deletedQuiz.id
-          )
-        }
-      })
+      const baseUrl = 'https://65742ec8f941bda3f2af738b.mockapi.io';
+      await axios.get(baseUrl, { signal: controllerRef.current.signal });
     } catch (error) {
-      //  this.setState({ error: true });
-      toast.error("Error deleting quiz!")
-    } finally {
-       this.setState({ isLoading: false });
+      console.log(error);
     }
-  }
-
-  addQuiz = async (newQuiz) => {
-//     const quiz = {
-//       ...newQuiz,
-//       id: nanoid()
-//     }
-    
-//     this.setState(prevState => {
-//       return {
-//     quizItems: [...prevState.quizItems, quiz]
-//   }
-   // })
-   
-    try {
-     this.setState({ isLoading: true, error: false });
-     const addedQuiz = await addNewQuiz(newQuiz);
-     this.setState(prevState => {
-       return {
-         quizItems: [...prevState.quizItems, addedQuiz]
-       }
-     })
-   } catch (error) {
-      //  this.setState({ error: true });
-      toast.error("Error adding quiz!")
-    } finally {
-      this.setState({ isLoading: false });
-   }
-  }
-
-  render() {
-    const { quizItems, filters, isLoading, error } = this.state;
-
-    const visibleQuizItems = quizItems.filter(item => {
-      const hasTopic = item.topic.toLowerCase().includes(filters.topic.toLocaleLowerCase());
-      if (filters.level === "all") {
-        return hasTopic
-      }
-      const matchesLevel = item.level === filters.level;
-      return hasTopic && matchesLevel;
-    })
-
-    return (
-      <div>
-        {/* <Basics/> */}
-        <QuizForm onAdd={this.addQuiz } />
-        <SearchBar filters={filters} onUpdateTopic={this.updateTopicFilter} onUpdateLevel={this.updateLevelFilter} onReset={this.resetFilters } />
-       {isLoading && <Bars
-  height="80"
-  width="80"
-  color="#4fa94d"
-  ariaLabel="bars-loading"
-  wrapperStyle={{}}
-  wrapperClass=""
-  visible={true}
-        />}
-        {error && <b>Error! Please try reload this page</b>}
-        {visibleQuizItems.length > 0 && <QuizList items={visibleQuizItems} onDelete={this.deleteQuiz} />}
-      <Toaster/>
-      </div>
-    )
   };
+  // --------------------------------------------
+
+  const addQuiz = async newQuiz => {
+    try {
+      setIsLoading(true);
+      const addedQuiz = await addNewQuiz(newQuiz);
+      setQuizItems(prevItems => [...prevItems, addedQuiz]);
+    } catch (error) {
+      toast.error('Error adding quiz!');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteQuiz = async quizId => {
+    try {
+      setIsLoading(true);
+      setError(false);
+      const deletedQuiz = await deleteQuizById(quizId);
+      setQuizItems(prevItems =>
+        prevItems.filter(item => item.id !== deletedQuiz.id)
+      );
+    } catch (error) {
+      toast.error('Error deleting quiz!');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateTopicFilter = newTopic => {
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      topic: newTopic,
+    }));
+  };
+
+  const updateLevelFilter = newLevel => {
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      level: newLevel,
+    }));
+  };
+
+  const resetFilters = () => {
+    setFilters(initialFilters);
+  };
+
+  const visibleQuizItems = quizItems.filter(item => {
+    const hasTopic = item.topic
+      .toLowerCase()
+      .includes(filters.topic.toLocaleLowerCase());
+    if (filters.level === 'all') {
+      return hasTopic;
+    }
+    const matchesLevel = item.level === filters.level;
+    return hasTopic && matchesLevel;
+  });
+
+  return (
+    <div>
+      <button onClick={fetcData}>Click</button>
+      <QuizForm onAdd={addQuiz} />
+      <SearchBar
+        filters={filters}
+        onUpdateTopic={updateTopicFilter}
+        onUpdateLevel={updateLevelFilter}
+        onReset={resetFilters}
+      />
+      {isLoading && (
+        <Bars
+          height="80"
+          width="80"
+          color="#4fa94d"
+          ariaLabel="bars-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+          visible={true}
+        />
+      )}
+      {error && <b>Error! Please try reload this page</b>}
+      {visibleQuizItems.length > 0 && (
+        <QuizList items={visibleQuizItems} onDelete={deleteQuiz} />
+      )}
+      <Toaster />
+    </div>
+  );
 };

@@ -8,11 +8,16 @@ export const fetchQuizzes = async () => {
 };
 
 export const addNewQuiz = async newQuiz => {
-  const responce = await axios.post('/quizes6', newQuiz);
+  const responce = await axios.post('/quizes', newQuiz);
   return responce.data;
 };
 
 export const deleteQuizById = async quizId => {
-  const responce = await axios.delete(`/quizes1/${quizId}`);
+  const responce = await axios.delete(`/quizes/${quizId}`);
+  return responce.data;
+};
+
+export const updateQuiz = async (id, update) => {
+  const responce = await axios.put(`/quizes/${id}`, update);
   return responce.data;
 };

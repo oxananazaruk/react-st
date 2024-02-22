@@ -1,51 +1,39 @@
 import { TopicModal } from 'components/TopicModal/TopicModal';
-import { Component } from 'react';
+import { useState } from 'react';
 
-export class QuizCard extends Component {
-  state = {
-    isModalOpen: false,
+export const QuizCard = ({
+  quiz: { id, topic, level, time, questions },
+  onDelete,
+}) => {
+  const { isModalOpen, setIsModalOpen } = useState(false);
+
+  const openModal = () => {
+    setIsModalOpen(true);
   };
 
-  openModal = () => {
-    this.setState({
-      isModalOpen: true,
-    });
+  const closeModal = () => {
+    setIsModalOpen(false);
   };
 
-  closeModal = () => {
-    this.setState({
-      isModalOpen: false,
-    });
-  };
-
-  render() {
-    const { isModalOpen } = this.state;
-
-    const {
-      quiz: { id, topic, level, time, questions },
-      onDelete,
-    } = this.props;
-    return (
-      <div level={level}>
-        <h2 onClick={this.openModal}>{topic}</h2>
-        <div>
-          <p>
-            <b>Level:</b> {level}
-          </p>
-          <p>
-            <b>Time:</b> {time}
-          </p>
-          <p>
-            <b>Questions:</b> {questions}
-          </p>
-        </div>
-        <button onClick={() => onDelete(id)}>Delete</button>
-        <TopicModal
-          isOpen={isModalOpen}
-          onClose={this.closeModal}
-          topic={topic}
-        />
+  return (
+    <div level={level}>
+      <h2 onClick={openModal}>{topic}</h2>
+      <div>
+        <p>
+          <b>Level:</b> {level}
+        </p>
+        <p>
+          <b>Time:</b> {time}
+        </p>
+        <p>
+          <b>Questions:</b> {questions}
+        </p>
       </div>
-    );
-  }
-}
+      <div>
+        <button onClick={() => onDelete(id)}>Delete</button>
+        <button onClick={() => openModal}>Edite</button>
+      </div>
+      <TopicModal isOpen={isModalOpen} onClose={closeModal} topic={topic} />
+    </div>
+  );
+};
