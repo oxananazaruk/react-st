@@ -1,20 +1,21 @@
 export const SearchBar = ({
-  filters,
-  onUpdateTopic,
-  onUpdateLevel,
+  filters: { topic, level },
+  // onUpdateTopic,
+  // onUpdateLevel,
+  onUpdateFilters,
   onReset,
 }) => {
   return (
     <div>
       <input
         type="text"
-        value={filters.topic}
-        onChange={evt => onUpdateTopic(evt.target.value)}
+        value={topic}
+        onChange={evt => onUpdateFilters('topic', evt.target.value)}
         placeholder="Topic filter"
       />
       <select
-        value={filters.level}
-        onChange={evt => onUpdateLevel(evt.target.value)}
+        value={level}
+        onChange={evt => onUpdateFilters('level', evt.target.value)}
       >
         <option value="all">All</option>
         <option value="beginner">Beginner</option>
